@@ -39,7 +39,7 @@ jobs:
           if [ -f VERSION ]; then
             echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
           else
-            echo "version=0.5.9" >> $GITHUB_OUTPUT
+            echo "version=0.8.1" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and push Docker image

@@ -1,0 +1,75 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  release:
+    name: Build, push, and publish release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+
+      - name: Derive version from tag
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          echo "version=$tag" >> "$GITHUB_OUTPUT"
+          file_version="$(cat VERSION)"
+          if [ "$tag" != "$file_version" ]; then
+            echo "::error::Tag v$tag does not match VERSION file ($file_version). Bump VERSION before tagging."
+            exit 1
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.ORG_DOCKERHUB_USER }}
+          password: ${{ secrets.ORG_DOCKERHUB_KEY }}
+
+      - name: Build and push release image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: |
+            techlotse/tl-recipe-core:v${{ steps.version.outputs.version }}
+            techlotse/tl-recipe-core:latest
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          notes_file="$(mktemp)"
+          # Pull the section for this version out of CHANGELOG.md, if present.
+          awk -v ver="## v${version}" '
+            $0 == ver {capture=1; next}
+            capture && /^## v/ {exit}
+            capture {print}
+          ' CHANGELOG.md > "$notes_file"
+          if [ ! -s "$notes_file" ]; then
+            echo "Release v${version}. See CHANGELOG.md for details." > "$notes_file"
+          fi
+          gh release create "v${version}" \
+            --title "v${version}" \
+            --notes-file "$notes_file" \
+            --repo "${GITHUB_REPOSITORY}"
