@@ -19,6 +19,7 @@ import {
   Plus,
   Printer,
   Save,
+  ScrollText,
   Search,
   ServerCog,
   Share2,
@@ -28,7 +29,8 @@ import {
   Trash2,
   UploadCloud,
   Utensils,
-  X
+  X,
+  Video
 } from 'lucide-react';
 import { api, configureAuth } from './api.js';
 
@@ -64,6 +66,9 @@ const EN_MESSAGES = {
   delete: 'Delete',
   manualRecipe: 'Manual recipe',
   sourceRecipe: 'Source recipe',
+  recipeVideo: 'Watch recipe video',
+  savedSource: 'Saved source',
+  savedSourceHint: 'Archived copy of the source page, kept in case the original goes offline.',
   ingredients: 'Ingredients',
   method: 'Method',
   importStats: 'Import stats',
@@ -164,6 +169,9 @@ const MESSAGES = {
     delete: 'Löschen',
     manualRecipe: 'Manuelles Rezept',
     sourceRecipe: 'Originalrezept',
+    recipeVideo: 'Rezeptvideo ansehen',
+    savedSource: 'Gespeicherte Quelle',
+    savedSourceHint: 'Archivierte Kopie der Quellseite, falls das Original offline geht.',
     ingredients: 'Zutaten',
     method: 'Zubereitung',
     importStats: 'Importstatistik',
@@ -254,6 +262,9 @@ const MESSAGES = {
     delete: 'Verwyder',
     manualRecipe: 'Handresep',
     sourceRecipe: 'Bronresep',
+    recipeVideo: 'Kyk resepvideo',
+    savedSource: 'Gestoorde bron',
+    savedSourceHint: 'Geargiveerde kopie van die bronbladsy, ingeval die oorspronklike aflyn gaan.',
     ingredients: 'Bestanddele',
     method: 'Metode',
     importStats: 'Invoerstatistiek',
@@ -439,14 +450,6 @@ function useRoute() {
     return () => window.removeEventListener('hashchange', onHashChange);
   }, []);
   return route;
-}
-
-function isStandaloneWebApp() {
-  return (
-    window.matchMedia?.('(display-mode: standalone)')?.matches === true ||
-    window.matchMedia?.('(display-mode: fullscreen)')?.matches === true ||
-    window.navigator.standalone === true
-  );
 }
 
 function useKeepAwake(enabled) {
@@ -1258,12 +1261,20 @@ function RecipeDetailPage({ id }) {
           </div>
           {missingSelectedTranslation && <div className="state compact">{t('translationMissing')}</div>}
           {translationError && <div className="state error compact">{translationError}</div>}
-          {recipe.sourceUrl && (
-            <a className="source-link" href={recipe.sourceUrl} target="_blank" rel="noreferrer">
-              <LinkIcon size={16} />
-              {t('sourceRecipe')}
-            </a>
-          )}
+          <div className="source-links">
+            {recipe.sourceUrl && (
+              <a className="source-link" href={recipe.sourceUrl} target="_blank" rel="noreferrer">
+                <LinkIcon size={16} />
+                {t('sourceRecipe')}
+              </a>
+            )}
+            {recipe.videoUrl && (
+              <a className="source-link" href={recipe.videoUrl} target="_blank" rel="noreferrer">
+                <Video size={16} />
+                {t('recipeVideo')}
+              </a>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1353,6 +1364,19 @@ function RecipeDetailPage({ id }) {
               </button>
             ))}
           </div>
+        </section>
+      )}
+
+      {recipe.sourceSnapshot && (
+        <section className="content-block">
+          <details className="saved-source">
+            <summary>
+              <ScrollText size={16} />
+              {t('savedSource')}
+            </summary>
+            <p className="muted-note">{t('savedSourceHint')}</p>
+            <p className="saved-source-text">{recipe.sourceSnapshot}</p>
+          </details>
         </section>
       )}
 
@@ -1543,6 +1567,7 @@ function AddRecipePage({ recipeId = null }) {
     tags: [],
     translations: {},
     sourceUrl: '',
+    videoUrl: '',
     importMode: 'manual'
   });
 
@@ -1571,6 +1596,7 @@ function AddRecipePage({ recipeId = null }) {
             tags: tagNames(loaded),
             translations: loaded.translations || {},
             sourceUrl: loaded.sourceUrl || '',
+            videoUrl: loaded.videoUrl || '',
             importMode: loaded.importMode || 'manual'
           });
         }
@@ -1738,6 +1764,14 @@ function AddRecipePage({ recipeId = null }) {
                 min="0"
                 value={recipe.totalTimeMinutes}
                 onChange={(event) => updateRecipe('totalTimeMinutes', event.target.value)}
+              />
+            </Field>
+            <Field label="Video URL">
+              <input
+                type="url"
+                placeholder="https://www.youtube.com/watch?v=…"
+                value={recipe.videoUrl}
+                onChange={(event) => updateRecipe('videoUrl', event.target.value)}
               />
             </Field>
           </div>
@@ -2787,8 +2821,10 @@ function SharedRecipePage({ token }) {
 
 export default function App() {
   const route = useRoute();
-  // Keep the screen awake while cooking when the app runs as an installed webapp.
-  useKeepAwake(isStandaloneWebApp());
+  // Keep the screen awake while the app is open so it stays readable while cooking,
+  // in a normal browser tab as well as an installed webapp (issue #10). The Wake
+  // Lock request fails silently where the browser or battery saver disallows it.
+  useKeepAwake(true);
   const initialAuthHeader = useRef(getStoredAuthHeader());
   const authHeaderRef = useRef(initialAuthHeader.current);
   const authWaitersRef = useRef([]);

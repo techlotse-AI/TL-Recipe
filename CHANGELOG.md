@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.0
+
+- Fixed pinch-to-zoom being blocked on mobile: the root `html`/`body` used `overflow-x: hidden`, which established a scroll container that disabled zoom-panning. Switched to `overflow-x: clip`, which still prevents horizontal overflow but keeps zoom working (regression from the v0.5 mobile default-zoom fix).
+- Keep-awake now works in a normal browser tab, not just an installed PWA (issue #10): the Screen Wake Lock is requested whenever the app is open and re-acquired after the tab regains focus, so the screen stays on while cooking. Requests still fail silently where the browser/battery saver disallows them.
+- Recipe video link (issue #11): URL imports now capture the recipe's own video — preferring the JSON-LD `video`, then an in-content YouTube embed or `og:video` — and normalize YouTube links to a canonical `watch?v=` URL. Unrelated page videos are ignored. The field is editable in the wizard/edit form and left blank when none is found; shown on the detail and shared views.
+- Source retention (issue #8): URL imports now archive the source page text with the recipe (`source_snapshot`) so the content survives if the original site goes offline. Shown in a collapsible "Saved source" panel on the detail page and included in personal backups.
+- Toddler helper usability (issue #12): step illustrations now depict the actual ingredient and what happens to the food (e.g. chopped apple going into the bowl, mixing together) instead of a generic child figure, and each ingredient step states the metric amount so a non-reading toddler can see how much to add.
+- Migration 010 adds `video_url` and `source_snapshot` columns.
+
 ## v0.8.1
 
 - Added a protein/fat/carbs pie chart to the right of the nutrition block, showing the macronutrient mix by mass with a percentage legend. Rendered as inline SVG (no chart dependency), so it also appears when saving/printing a recipe.

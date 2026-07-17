@@ -45,7 +45,9 @@
 
 html {
   width: 100%;
-  overflow-x: hidden;
+  /* clip (not hidden) suppresses horizontal overflow without creating a
+     scroll container, which on mobile would break pinch-to-zoom panning. */
+  overflow-x: clip;
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
 }
@@ -55,7 +57,7 @@ body {
   min-width: 0;
   width: 100%;
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   background:
     radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 30rem),
     linear-gradient(145deg, var(--tl-bg-primary) 0%, #071021 48%, var(--tl-bg-secondary) 100%);
@@ -687,6 +689,12 @@ h3 {
   min-width: min(100%, 14rem);
 }
 
+.source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.1rem;
+}
+
 .source-link {
   display: inline-flex;
   align-items: center;
@@ -694,6 +702,26 @@ h3 {
   width: fit-content;
   color: var(--accent);
   font-weight: 700;
+}
+
+.saved-source > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.saved-source-text {
+  margin-top: 0.75rem;
+  max-height: 22rem;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-muted, inherit);
 }
 
 .detail-grid {

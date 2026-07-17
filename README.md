@@ -1,7 +1,7 @@
 # TL Recipe Core
 
 [![CI](https://github.com/techlotse-AI/TL-Recipe/actions/workflows/ci.yml/badge.svg)](https://github.com/techlotse-AI/TL-Recipe/actions/workflows/ci.yml)
-![Version](https://img.shields.io/badge/version-0.8.1-f59e0b)
+![Version](https://img.shields.io/badge/version-0.9.0-f59e0b)
 ![Docker build](https://img.shields.io/badge/docker-build%20in%20CI-a6e22e)
 ![License](https://img.shields.io/badge/license-GPL--3.0-blue)
 
@@ -85,7 +85,7 @@ docker compose up
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP port inside the app container. |
 | `APP_PORT` | `8080` | Host port exposed by Docker Compose. Change this if `8080` is already in use. |
-| `DOCKER_IMAGE` | `techlotse/tl-recipe-core:v0.8.1` | Published image used by `docker-compose.yml`. |
+| `DOCKER_IMAGE` | `techlotse/tl-recipe-core:v0.9.0` | Published image used by `docker-compose.yml`. |
 | `DATABASE_URL` | Compose PostgreSQL URL | Backend database connection string. |
 | `DATABASE_STARTUP_RETRIES` | `30` | Startup attempts for migrations while PostgreSQL/Docker DNS becomes ready. |
 | `DATABASE_STARTUP_RETRY_MS` | `2000` | Delay between startup database retry attempts in milliseconds. |
