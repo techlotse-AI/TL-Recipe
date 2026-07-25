@@ -46,7 +46,7 @@ jobs:
         run: docker build -t tl-recipe-core:ci .
 
       - name: Trivy filesystem scan (fail on CRITICAL)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -58,7 +58,7 @@ jobs:
           TRIVY_DB_REPOSITORY: public.ecr.aws/aquasecurity/trivy-db
 
       - name: Trivy image scan (fail on CRITICAL)
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
           image-ref: tl-recipe-core:ci
