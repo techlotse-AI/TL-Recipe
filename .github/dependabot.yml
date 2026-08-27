@@ -34,3 +34,13 @@ updates:
     labels:
       - dependencies
       - docker
+    ignore:
+      # Node majors are adopted deliberately, not on Dependabot's schedule.
+      # The Dockerfile pins npm@12.0.1 (tar CVE-2026-59873, 3cbe9fe), whose
+      # engines field is "^22.22.2 || ^24.15.0 || >=26.0.0" — Node 25 is
+      # excluded outright, so 24 -> 25 cannot build (#24). Node 25 is also
+      # not an LTS line, while engines.node is ">=24.0.0" and CI runs 24.
+      # Revisit when Node 26 goes LTS; patch/minor bumps still flow through.
+      - dependency-name: node
+        update-types:
+          - version-update:semver-major
