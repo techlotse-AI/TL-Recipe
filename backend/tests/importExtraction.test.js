@@ -64,6 +64,17 @@ test('prefers an in-content embed over one elsewhere on the page', () => {
   assert.equal(videoUrl, 'https://www.youtube.com/watch?v=abcdefghijk');
 });
 
+test('falls back to an embed outside <article> when the article has none', () => {
+  // The document-wide selectors are a last resort, not a landmark-absence
+  // branch: a page can have <article> and still keep its player outside it.
+  const html = `<!doctype html><html><body>
+    <article><h1>Stew</h1><p>No player in here.</p></article>
+    <div class="player"><iframe src="https://www.youtube.com/embed/abcdefghijk"></iframe></div>
+  </body></html>`;
+  const { videoUrl } = extractRecipeFromHtml(html, URL);
+  assert.equal(videoUrl, 'https://www.youtube.com/watch?v=abcdefghijk');
+});
+
 test('rejects lookalike hosts that merely end in youtube.com', () => {
   // Inside <article> so the selector definitely matches: this asserts the host
   // check in normalizeYouTubeUrl, not the selector scope.

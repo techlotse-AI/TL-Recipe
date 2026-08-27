@@ -119,18 +119,21 @@ function isHttpUrl(value) {
 }
 
 // DOM fallback for the recipe video when JSON-LD carries none: an in-content
-// YouTube embed or the page's og:video. Selectors are ordered so an embed
-// inside <article>/<main> always wins over one elsewhere on the page; the
-// document-wide selectors only apply to pages that use neither landmark.
+// YouTube embed or the page's og:video. Selectors are tried in order, so an
+// embed inside <article>/<main> always wins. The document-wide selectors are
+// a last resort reached whenever no landmark-scoped selector matched — that
+// includes pages which do have <article>/<main> but keep the video outside
+// them, not only pages missing both landmarks.
 function extractVideoUrlFromDom($) {
   const embedSelectors = [
     'article iframe[src*="youtube.com/embed/"]',
     'article iframe[src*="youtube-nocookie.com/embed/"]',
     'main iframe[src*="youtube.com/embed/"]',
     'main iframe[src*="youtube-nocookie.com/embed/"]',
-    // Last resort: plenty of recipe sites wrap their content in neither
-    // <article> nor <main>. Ordering still prefers an in-content embed, and
-    // normalizeYouTubeUrl() is what actually validates the host.
+    // Last resort, unscoped: plenty of recipe sites wrap their content in
+    // neither <article> nor <main>, and others keep the player outside them.
+    // Reached only when nothing above matched; normalizeYouTubeUrl() is what
+    // actually validates the host.
     'iframe[src*="youtube.com/embed/"]',
     'iframe[src*="youtube-nocookie.com/embed/"]'
   ];
