@@ -1,6 +1,6 @@
 {
   "name": "tl-recipe-core",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "private": true,
   "description": "TL Recipe Core - internal recipe manager MVP",
   "type": "module",
@@ -14,7 +14,7 @@
     "dev:frontend": "npm run dev --workspace frontend",
     "lint": "node scripts/lint.mjs",
     "start": "npm run start --workspace backend",
-    "test": "node --test backend/tests/auth.test.js backend/tests/categoryOptions.test.js backend/tests/duration.test.js backend/tests/normalization.test.js backend/tests/unitConversion.test.js backend/tests/contentSafety.test.js backend/tests/share.test.js backend/tests/nutrition.test.js"
+    "test": "node --test backend/tests/auth.test.js backend/tests/categoryOptions.test.js backend/tests/duration.test.js backend/tests/normalization.test.js backend/tests/unitConversion.test.js backend/tests/contentSafety.test.js backend/tests/share.test.js backend/tests/nutrition.test.js backend/tests/importExtraction.test.js"
   },
   "engines": {
     "node": ">=24.0.0"

@@ -1,0 +1,3 @@
+ALTER TABLE recipes
+  ADD COLUMN IF NOT EXISTS video_url TEXT NULL,
+  ADD COLUMN IF NOT EXISTS source_snapshot TEXT NULL;

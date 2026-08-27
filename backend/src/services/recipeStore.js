@@ -81,7 +81,9 @@ export function mapRecipe(row) {
     translations: row.translations || {},
     tags: mapTags(row.tags),
     sourceUrl: row.source_url || '',
+    videoUrl: row.video_url || '',
     sourcePhotos: row.source_photos || [],
+    sourceSnapshot: row.source_snapshot || '',
     importMode: row.import_mode,
     shareEnabled: Boolean(row.share_enabled),
     nutrition: row.nutrition || null,
@@ -207,15 +209,16 @@ export async function createRecipe(input) {
     await client.query(
       `INSERT INTO recipes (
         id, title, short_description, image_url, active_time_minutes, total_time_minutes,
-        ingredients, steps, translations, source_url, source_photos, import_mode, llm_provider, llm_model,
+        ingredients, steps, translations, source_url, video_url, source_photos, source_snapshot,
+        import_mode, llm_provider, llm_model,
         llm_input_tokens, llm_output_tokens, llm_total_tokens, llm_response_ms,
         llm_input_price_per_million_usd, llm_output_price_per_million_usd,
         llm_input_cost_usd, llm_output_cost_usd, llm_image_model, llm_image_count,
         llm_image_cost_usd, llm_total_cost_usd
       )
       VALUES (
-        $1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11::jsonb, $12, $13, $14, $15,
-        $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26
+        $1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, $10, $11, $12::jsonb, $13, $14, $15, $16,
+        $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28
       )
       RETURNING *`,
       [
@@ -229,7 +232,9 @@ export async function createRecipe(input) {
         toDbJson(input.steps),
         toDbObject(input.translations),
         input.sourceUrl || null,
+        input.videoUrl || null,
         toDbJson(input.sourcePhotos),
+        input.sourceSnapshot || null,
         input.importMode || 'manual',
         input.llmUsage?.provider || null,
         input.llmUsage?.model || null,
@@ -268,8 +273,10 @@ export async function updateRecipe(recipeId, input) {
            steps = $8::jsonb,
            translations = $9::jsonb,
            source_url = $10,
-           source_photos = COALESCE($11::jsonb, source_photos),
-           import_mode = $12,
+           video_url = $11,
+           source_photos = COALESCE($12::jsonb, source_photos),
+           source_snapshot = COALESCE($13, source_snapshot),
+           import_mode = $14,
            updated_at = NOW()
        WHERE id = $1
        RETURNING id`,
@@ -284,7 +291,9 @@ export async function updateRecipe(recipeId, input) {
         toDbJson(input.steps),
         toDbObject(input.translations),
         input.sourceUrl || null,
+        input.videoUrl || null,
         input.sourcePhotos === undefined ? null : JSON.stringify(input.sourcePhotos),
+        input.sourceSnapshot === undefined ? null : input.sourceSnapshot,
         input.importMode || 'manual'
       ]
     );
@@ -474,6 +483,7 @@ export function toPublicRecipe(recipe) {
     title: recipe.title,
     shortDescription: recipe.shortDescription || '',
     imageUrl: recipe.imageUrl || '',
+    videoUrl: recipe.videoUrl || '',
     activeTimeMinutes: recipe.activeTimeMinutes,
     totalTimeMinutes: recipe.totalTimeMinutes,
     ingredients: (recipe.ingredients || []).map(toPublicIngredient),

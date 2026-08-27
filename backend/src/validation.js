@@ -89,8 +89,12 @@ export const recipeInputSchema = z.object({
     .optional()
     .default({}),
   sourceUrl: z.string().trim().url().optional().or(z.literal('')).default(''),
+  videoUrl: z.string().trim().url().optional().or(z.literal('')).default(''),
   // Optional on purpose (no default): updates that omit sourcePhotos keep the stored ones.
   sourcePhotos: z.array(sourcePhotoSchema).max(5).optional(),
+  // Archived source page text (issue #8). Optional/no default so manual edits that
+  // omit it keep the stored snapshot; capped to bound row size.
+  sourceSnapshot: z.string().trim().max(200000).optional(),
   importMode: z.enum(['manual', 'verbatim', 'ai']).optional().default('manual'),
   llmUsage: z
     .object({

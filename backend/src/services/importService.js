@@ -59,6 +59,87 @@ function imageFromJsonLd(value) {
   return image.url || image.contentUrl || '';
 }
 
+// Normalize a YouTube URL (watch, youtu.be, or /embed/ form) to a canonical
+// https://www.youtube.com/watch?v=<id> link. Returns '' when not a YouTube URL.
+function normalizeYouTubeUrl(rawUrl) {
+  const value = cleanText(rawUrl);
+  if (!value) return '';
+  let parsed;
+  try {
+    parsed = new URL(value, 'https://www.youtube.com');
+  } catch {
+    return '';
+  }
+  const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+  let id = '';
+  if (host === 'youtu.be') {
+    id = parsed.pathname.split('/').filter(Boolean)[0] || '';
+  } else if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+    if (parsed.pathname === '/watch') id = parsed.searchParams.get('v') || '';
+    else if (parsed.pathname.startsWith('/embed/') || parsed.pathname.startsWith('/shorts/')) {
+      id = parsed.pathname.split('/').filter(Boolean)[1] || '';
+    }
+  }
+  if (!/^[a-zA-Z0-9_-]{6,20}$/.test(id)) return '';
+  return `https://www.youtube.com/watch?v=${id}`;
+}
+
+// Pull the recipe's own video from a JSON-LD recipe node's `video` property
+// (a VideoObject or array of them). Prefer a YouTube link; otherwise take the
+// first direct content URL. Unrelated page videos live outside this node.
+function videoFromJsonLd(value) {
+  const videos = asArray(value);
+  let firstUrl = '';
+  for (const video of videos) {
+    const candidates =
+      typeof video === 'string'
+        ? [video]
+        : [video?.contentUrl, video?.embedUrl, video?.url].filter(Boolean);
+    for (const candidate of candidates) {
+      const youtube = normalizeYouTubeUrl(candidate);
+      if (youtube) return youtube;
+      if (!firstUrl && isHttpUrl(candidate)) firstUrl = cleanText(candidate);
+    }
+  }
+  return firstUrl;
+}
+
+function isHttpUrl(value) {
+  try {
+    const parsed = new URL(cleanText(value));
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+// DOM fallback for the recipe video when JSON-LD carries none: an in-content
+// YouTube embed or the page's og:video. Non-recipe videos elsewhere on the page
+// are ignored by scoping to article/main first.
+function extractVideoUrlFromDom($) {
+  const embedSelectors = [
+    'article iframe[src*="youtube.com/embed/"]',
+    'article iframe[src*="youtube-nocookie.com/embed/"]',
+    'main iframe[src*="youtube.com/embed/"]',
+    'main iframe[src*="youtube-nocookie.com/embed/"]'
+  ];
+  for (const selector of embedSelectors) {
+    const src = $(selector).first().attr('src');
+    const youtube = normalizeYouTubeUrl(src);
+    if (youtube) return youtube;
+  }
+
+  const ogVideo =
+    $('meta[property="og:video:url"]').attr('content') ||
+    $('meta[property="og:video"]').attr('content') ||
+    $('meta[property="og:video:secure_url"]').attr('content');
+  const ogYouTube = normalizeYouTubeUrl(ogVideo);
+  if (ogYouTube) return ogYouTube;
+  if (isHttpUrl(ogVideo)) return cleanText(ogVideo);
+
+  return '';
+}
+
 function instructionsFromJsonLd(value) {
   return asArray(value)
     .flatMap((item) => {
@@ -104,6 +185,7 @@ function extractJsonLdRecipe($) {
       title: cleanText(recipe.name),
       shortDescription: cleanText(recipe.description),
       imageUrl: imageFromJsonLd(recipe.image),
+      videoUrl: videoFromJsonLd(recipe.video),
       activeTimeMinutes:
         parseDurationToMinutes(recipe.prepTime) ?? parseDurationToMinutes(recipe.cookTime),
       totalTimeMinutes: parseDurationToMinutes(recipe.totalTime),
@@ -155,14 +237,15 @@ function extractFallbackRecipe($, url) {
 export function extractRecipeFromHtml(html, url) {
   const $ = cheerio.load(html);
   const extracted = extractJsonLdRecipe($) || extractFallbackRecipe($, url);
+  const videoUrl = cleanText(extracted?.videoUrl) || extractVideoUrlFromDom($);
 
   $('script, style, noscript, svg').remove();
   const sourceText = cleanText(($('article').text() || $('main').text() || $('body').text()).slice(0, 60000));
 
-  return { extracted, sourceText };
+  return { extracted, sourceText, videoUrl };
 }
 
-export function buildVerbatimRecipe({ extracted, sourceText, sourceUrl }) {
+export function buildVerbatimRecipe({ extracted, sourceText, sourceUrl, videoUrl = '' }) {
   const recipe = {
     title: extracted.title || new URL(sourceUrl).hostname,
     shortDescription:
@@ -181,6 +264,8 @@ export function buildVerbatimRecipe({ extracted, sourceText, sourceUrl }) {
         : [{ text: sourceText.slice(0, 1000) || 'Review the original source for the method.' }],
     tags: uniqueStrings([...(extracted.tags || []), 'imported']),
     sourceUrl,
+    videoUrl: videoUrl || '',
+    sourceSnapshot: sourceText || '',
     importMode: 'verbatim'
   };
 
@@ -233,7 +318,7 @@ function normalizePhotoUpload(photo, index) {
 
 export async function importRecipeFromUrl({ url, mode, createToddlerVersion = false, translationLanguages = [] }) {
   const html = await fetchRecipePage(url);
-  const { extracted, sourceText } = extractRecipeFromHtml(html, url);
+  const { extracted, sourceText, videoUrl } = extractRecipeFromHtml(html, url);
   if (createToddlerVersion && mode !== 'ai') {
     throw badRequest('Toddler helper recipes are only available for AI-assisted imports');
   }
@@ -242,9 +327,13 @@ export async function importRecipeFromUrl({ url, mode, createToddlerVersion = fa
     mode === 'ai'
       ? await normalizeRecipeWithOpenAi({ sourceUrl: url, extracted, sourceText, translationLanguages }).then((result) => ({
           ...result.recipe,
+          // The video link and source archive are extracted deterministically from
+          // the page (issues #8, #11), not produced by the model.
+          videoUrl: result.recipe.videoUrl || videoUrl || '',
+          sourceSnapshot: sourceText || '',
           llmUsage: result.llmUsage
         }))
-      : buildVerbatimRecipe({ extracted, sourceText, sourceUrl: url });
+      : buildVerbatimRecipe({ extracted, sourceText, sourceUrl: url, videoUrl });
 
   const recipe = await createRecipe(input);
   let toddlerRecipe = null;
