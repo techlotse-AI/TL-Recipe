@@ -121,7 +121,7 @@ function extractVideoUrlFromDom($) {
     'article iframe[src*="youtube.com/embed/"]',
     'article iframe[src*="youtube-nocookie.com/embed/"]',
     'main iframe[src*="youtube.com/embed/"]',
-    'iframe[src*="youtube.com/embed/"]'
+    'main iframe[src*="youtube-nocookie.com/embed/"]'
   ];
   for (const selector of embedSelectors) {
     const src = $(selector).first().attr('src');
