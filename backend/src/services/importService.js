@@ -59,6 +59,8 @@ function imageFromJsonLd(value) {
   return image.url || image.contentUrl || '';
 }
 
+const YOUTUBE_HOSTS = ['youtube.com', 'youtube-nocookie.com'];
+
 // Normalize a YouTube URL (watch, youtu.be, or /embed/ form) to a canonical
 // https://www.youtube.com/watch?v=<id> link. Returns '' when not a YouTube URL.
 function normalizeYouTubeUrl(rawUrl) {
@@ -71,10 +73,13 @@ function normalizeYouTubeUrl(rawUrl) {
     return '';
   }
   const host = parsed.hostname.replace(/^www\./, '').toLowerCase();
+  // Match the host exactly or as a subdomain. A bare endsWith() would also
+  // accept lookalikes such as evilyoutube.com.
+  const isYouTubeHost = YOUTUBE_HOSTS.some((known) => host === known || host.endsWith(`.${known}`));
   let id = '';
   if (host === 'youtu.be') {
     id = parsed.pathname.split('/').filter(Boolean)[0] || '';
-  } else if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
+  } else if (isYouTubeHost) {
     if (parsed.pathname === '/watch') id = parsed.searchParams.get('v') || '';
     else if (parsed.pathname.startsWith('/embed/') || parsed.pathname.startsWith('/shorts/')) {
       id = parsed.pathname.split('/').filter(Boolean)[1] || '';
@@ -114,14 +119,23 @@ function isHttpUrl(value) {
 }
 
 // DOM fallback for the recipe video when JSON-LD carries none: an in-content
-// YouTube embed or the page's og:video. Non-recipe videos elsewhere on the page
-// are ignored by scoping to article/main first.
+// YouTube embed or the page's og:video. Selectors are tried in order, so an
+// embed inside <article>/<main> always wins. The document-wide selectors are
+// a last resort reached whenever no landmark-scoped selector matched — that
+// includes pages which do have <article>/<main> but keep the video outside
+// them, not only pages missing both landmarks.
 function extractVideoUrlFromDom($) {
   const embedSelectors = [
     'article iframe[src*="youtube.com/embed/"]',
     'article iframe[src*="youtube-nocookie.com/embed/"]',
     'main iframe[src*="youtube.com/embed/"]',
-    'main iframe[src*="youtube-nocookie.com/embed/"]'
+    'main iframe[src*="youtube-nocookie.com/embed/"]',
+    // Last resort, unscoped: plenty of recipe sites wrap their content in
+    // neither <article> nor <main>, and others keep the player outside them.
+    // Reached only when nothing above matched; normalizeYouTubeUrl() is what
+    // actually validates the host.
+    'iframe[src*="youtube.com/embed/"]',
+    'iframe[src*="youtube-nocookie.com/embed/"]'
   ];
   for (const selector of embedSelectors) {
     const src = $(selector).first().attr('src');
