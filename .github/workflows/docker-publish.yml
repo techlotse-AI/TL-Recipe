@@ -1,5 +1,14 @@
 name: Create Docker Container
 
+# Continuous build of main. This workflow owns MUTABLE development tags only:
+#   :main, :main-<short-sha>, :<date>
+#
+# The release tags :v<version> and :latest belong exclusively to release.yml,
+# which runs on v* tags. Publishing :v<version> from here read VERSION on every
+# push, which made it a rolling pointer to main rather than a release artifact
+# — it was republished 12 times before v0.9.0 was ever tagged, and would have
+# silently overwritten a published release on the next merge.
+
 on:
   push:
     branches:
@@ -29,18 +38,11 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USER }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Get the current date
-        id: current_date
-        run: echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
-
-      - name: Get version from file
-        id: version
+      - name: Collect build metadata
+        id: meta
         run: |
-          if [ -f VERSION ]; then
-            echo "version=$(cat VERSION)" >> $GITHUB_OUTPUT
-          else
-            echo "version=0.8.1" >> $GITHUB_OUTPUT
-          fi
+          echo "date=$(date +'%Y%m%d')" >> "$GITHUB_OUTPUT"
+          echo "sha_short=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build and push Docker image
         id: docker_build
@@ -50,10 +52,12 @@ jobs:
           push: true
           provenance: mode=max
           sbom: true
+          # Mutable dev tags only — see the header comment. Never add
+          # :v<version> or :latest here; release.yml owns those.
           tags: |
-            techlotse/tl-recipe-core:v${{ steps.version.outputs.version }}
-            techlotse/tl-recipe-core:${{ steps.current_date.outputs.date }}
-            techlotse/tl-recipe-core:latest
+            techlotse/tl-recipe-core:main
+            techlotse/tl-recipe-core:main-${{ steps.meta.outputs.sha_short }}
+            techlotse/tl-recipe-core:${{ steps.meta.outputs.date }}
           labels: |
-            org.opencontainers.image.version=${{ steps.version.outputs.version }}
-            org.opencontainers.image.created=${{ steps.current_date.outputs.date }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ steps.meta.outputs.date }}
