@@ -45,9 +45,8 @@
 
 html {
   width: 100%;
-  /* clip (not hidden) suppresses horizontal overflow without creating a
-     scroll container, which on mobile would break pinch-to-zoom panning. */
-  overflow-x: clip;
+  max-width: 100%;
+  overflow-x: hidden;
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
 }
@@ -55,13 +54,21 @@ html {
 body {
   margin: 0;
   min-width: 0;
+  max-width: 100%;
   width: 100%;
   min-height: 100vh;
-  overflow-x: clip;
+  min-height: 100dvh;
+  overflow-x: hidden;
   background:
     radial-gradient(circle at top left, rgba(245, 158, 11, 0.1), transparent 30rem),
     linear-gradient(145deg, var(--tl-bg-primary) 0%, #071021 48%, var(--tl-bg-secondary) 100%);
   color: var(--text);
+}
+
+#root {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 img,
@@ -97,7 +104,10 @@ a {
   display: grid;
   grid-template-columns: 17rem minmax(0, 1fr);
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   min-height: 100vh;
+  min-height: 100dvh;
 }
 
 .sidebar {
@@ -212,11 +222,14 @@ a {
 
 .main-content {
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
   padding: 2rem;
 }
 
 .view {
   width: min(1180px, 100%);
+  max-width: 100%;
   min-width: 0;
   margin: 0 auto;
 }
@@ -1165,9 +1178,12 @@ h3 {
 }
 
 .usage-table {
-  overflow: hidden;
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
   border: 1px solid var(--line);
   border-radius: var(--tl-radius-sm);
+  -webkit-overflow-scrolling: touch;
 }
 
 .usage-table-header,
@@ -1297,12 +1313,18 @@ h3 {
 @media (max-width: 920px) {
   .app-shell {
     grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .sidebar {
     position: sticky;
     z-index: 20;
     height: auto;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     padding: 0.8rem 1rem;
     border-right: 0;
     border-bottom: 1px solid var(--line);
@@ -1317,14 +1339,32 @@ h3 {
     gap: 0.45rem;
     overflow-x: auto;
     padding-bottom: 0.1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   .nav-item {
     flex: 0 0 auto;
   }
 
+  .sidebar-account {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .sidebar-account > div:not(.account-avatar) {
+    min-width: 0;
+    overflow: hidden;
+  }
+
   .main-content {
     padding: 1rem;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   h1 {
@@ -1737,8 +1777,11 @@ h3 {
   display: grid;
   border: 1px solid var(--line);
   border-radius: var(--tl-radius-sm);
-  overflow: hidden;
+  overflow-x: auto;
+  max-width: 100%;
+  min-width: 0;
   margin-top: 0.4rem;
+  -webkit-overflow-scrolling: touch;
 }
 
 .nutrition-table-header,
