@@ -1,5 +1,10 @@
 name: Release
 
+# Owns the RELEASE tags: :v<version> and :latest. These are the tags users and
+# docker-compose.yml pin against, so nothing else may push them —
+# docker-publish.yml builds main under mutable dev tags (:main, :main-<sha>,
+# :<date>) precisely so a merge cannot overwrite a published release.
+
 on:
   push:
     tags:
